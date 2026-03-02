@@ -1,12 +1,15 @@
 const DAILY_LIMIT = 10;
 const MAX_PROMPT_LENGTH = 3000;
+const MAX_PER_MINUTE = 3;
 
 /*
 Structure:
 {
   "IP": {
-      count: Number,
-      resetTime: Timestamp
+      dailyCount: Number,
+      dailyReset: Timestamp,
+      minuteCount: Number,
+      minuteWindowStart: Timestamp
   }
 }
 */
@@ -63,52 +66,83 @@ exports.handler = async function (event) {
     /* ───────────────────────────── */
     /* 2️⃣ USER IDENTIFICATION */
     /* ───────────────────────────── */
-    const userIP =
+    const rawIP =
       event.headers["x-forwarded-for"] ||
       event.headers["client-ip"] ||
       "unknown";
 
+    const userIP = rawIP.split(",")[0].trim();
     const now = Date.now();
 
     if (!userLimits[userIP]) {
       userLimits[userIP] = {
-        count: 0,
-        resetTime: now + (24 * 60 * 60 * 1000)
+        dailyCount: 0,
+        dailyReset: now + (24 * 60 * 60 * 1000),
+        minuteCount: 0,
+        minuteWindowStart: now
       };
     }
 
     const userData = userLimits[userIP];
 
-    /* Reset after 24 hours */
-    if (now > userData.resetTime) {
-      userData.count = 0;
-      userData.resetTime = now + (24 * 60 * 60 * 1000);
+    /* ───────────────────────────── */
+    /* 3️⃣ RESET DAILY IF NEEDED */
+    /* ───────────────────────────── */
+    if (now > userData.dailyReset) {
+      userData.dailyCount = 0;
+      userData.dailyReset = now + (24 * 60 * 60 * 1000);
     }
 
     /* ───────────────────────────── */
-    /* 3️⃣ DAILY LIMIT CHECK */
+    /* 4️⃣ RESET MINUTE WINDOW */
     /* ───────────────────────────── */
-    if (userData.count >= DAILY_LIMIT) {
-      const remainingTime = Math.ceil(
-        (userData.resetTime - now) / (60 * 60 * 1000)
+    if (now - userData.minuteWindowStart > 60 * 1000) {
+      userData.minuteCount = 0;
+      userData.minuteWindowStart = now;
+    }
+
+    /* ───────────────────────────── */
+    /* 5️⃣ MINUTE RATE LIMIT CHECK */
+    /* ───────────────────────────── */
+    if (userData.minuteCount >= MAX_PER_MINUTE) {
+      return {
+        statusCode: 429,
+        body: JSON.stringify({
+          error: "Too many requests. Please wait a minute before trying again."
+        })
+      };
+    }
+
+    /* ───────────────────────────── */
+    /* 6️⃣ DAILY LIMIT CHECK */
+    /* ───────────────────────────── */
+    if (userData.dailyCount >= DAILY_LIMIT) {
+      const hoursLeft = Math.ceil(
+        (userData.dailyReset - now) / (60 * 60 * 1000)
       );
 
       return {
         statusCode: 429,
         body: JSON.stringify({
           error: `Daily limit reached. You can ask only 10 questions every 24 hours.`,
-          retryAfterHours: remainingTime
+          retryAfterHours: hoursLeft
         })
       };
     }
 
-    userData.count++;
+    /* Increment counters */
+    userData.minuteCount++;
+    userData.dailyCount++;
 
-    console.log("User IP:", userIP);
-    console.log("Question Count:", userData.count);
+    console.log({
+      ip: userIP,
+      dailyUsed: userData.dailyCount,
+      minuteUsed: userData.minuteCount,
+      remainingToday: DAILY_LIMIT - userData.dailyCount
+    });
 
     /* ───────────────────────────── */
-    /* 4️⃣ STRICT SYSTEM PROMPT */
+    /* 7️⃣ SYSTEM PROMPT */
     /* ───────────────────────────── */
     const systemPrompt = `
 You are a senior Oracle APEX architect.
@@ -135,7 +169,7 @@ Rules:
 `;
 
     /* ───────────────────────────── */
-    /* 5️⃣ CALL OPENROUTER */
+    /* 8️⃣ CALL OPENROUTER */
     /* ───────────────────────────── */
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -171,14 +205,7 @@ Rules:
     }
 
     /* ───────────────────────────── */
-    /* 6️⃣ TOKEN LOGGING */
-    /* ───────────────────────────── */
-    if (data.usage) {
-      console.log("Token usage:", data.usage);
-    }
-
-    /* ───────────────────────────── */
-    /* 7️⃣ SAFE REPLY EXTRACTION */
+    /* 9️⃣ EXTRACT RESPONSE */
     /* ───────────────────────────── */
     let reply = "No response generated.";
 
@@ -192,17 +219,12 @@ Rules:
       }
     }
 
-    /* Anti-truncation indicator */
-    if (!reply.endsWith("```") && reply.length > 1400) {
-      reply += "\n\n⚠️ Response may be truncated due to model token limit.";
-    }
-
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         reply,
-        remainingQuestions: DAILY_LIMIT - userData.count
+        remainingQuestions: DAILY_LIMIT - userData.dailyCount
       })
     };
 
@@ -212,8 +234,7 @@ Rules:
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: "Internal Server Error",
-        details: error.message
+        error: "Internal Server Error"
       })
     };
   }
