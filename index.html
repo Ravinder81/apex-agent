@@ -40,7 +40,7 @@ body{
 header{
   position:fixed;top:0;left:0;right:0;z-index:200;
   background:var(--white);border-bottom:1px solid var(--border);
-  box-shadow:var(--sh0);height:62px;
+  box-shadow:var(--sh0);height:var(--header-h);
   display:flex;align-items:center;justify-content:space-between;padding:0 20px;
 }
 .logo{display:flex;align-items:center;gap:10px}
@@ -58,7 +58,12 @@ header{
   letter-spacing:-0.3px;
 }
 .logo-txt em{font-style:normal;color:var(--blue)}
-.hdr-r{display:flex;align-items:center;gap:8px}
+.hdr-r{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-shrink:0;
+}
 .pill{font-size:11px;font-family:'DM Mono',monospace;font-weight:500;padding:4px 11px;border-radius:20px;white-space:nowrap}
 .pill-g{color:var(--green);background:var(--green-bg);border:1px solid var(--green-b)}
 .pill-b{color:var(--blue);background:var(--blue-l);border:1px solid var(--blue-m)}
@@ -377,6 +382,31 @@ header{
   .layout{width:100%;overflow:hidden}
   .u-bubble{max-width:88%}
   .messages{padding:14px 12px}
+}
+
+  @media(max-width:780px){
+
+  header{
+    padding:0 12px;
+  }
+
+  .logo-txt{
+    font-size:15px;
+  }
+
+  .hdr-r{
+    gap:4px;
+  }
+
+  .pill{
+    font-size:9px;
+    padding:2px 6px;
+  }
+
+  .hdr-r .pill-b{
+    display:none;
+  }
+
 }
 
 .fup-q{
