@@ -41,7 +41,12 @@ header{
   font-family:'DM Mono',monospace;font-size:12px;color:#fff;
   box-shadow:0 2px 8px rgba(26,86,219,.32);flex-shrink:0;
 }
-.logo-txt{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.logo-txt{
+  font-size:17px;
+  font-weight:700;
+  color:var(--text);
+  letter-spacing:-0.3px;
+}
 .logo-txt em{font-style:normal;color:var(--blue)}
 .hdr-r{display:flex;align-items:center;gap:8px}
 .pill{font-size:11px;font-family:'DM Mono',monospace;font-weight:500;padding:4px 11px;border-radius:20px;white-space:nowrap}
@@ -352,6 +357,30 @@ header{
 }
 .fup-q:hover{border-color:var(--blue);background:var(--blue-l)}
 .fup-q:hover .fup-arrow{color:var(--blue)}
+  /* ── CREATOR BRANDING ───────────────────────── */
+.creator-line{
+  font-size:11px;
+  font-family:'DM Sans',sans-serif;
+  color:#6b7280;
+  font-weight:500;
+  margin-top:3px;
+  letter-spacing:0.2px;
+}
+
+.ace-badge{
+  background:var(--blue-l);
+  color:var(--blue);
+  padding:2px 7px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:600;
+  border:1px solid var(--blue-m);
+}
+
+.logo{
+  align-items:flex-start;
+}
+  
 </style>
 </head>
 <body>
@@ -359,16 +388,17 @@ header{
 <!-- HEADER -->
 <!-- HEADER -->
 <header>
-  <div class="logo">
-    <div class="logo-icon">Ax</div>
+<div class="logo">
+  <div class="logo-icon">Ax</div>
 
-    <div style="display:flex;flex-direction:column;line-height:1.1">
-      <div class="logo-txt">Oracle <em>APEX</em> Agent</div>
-      <div class="creator-line">
-        by Ravindra Thapliyal · <span class="ace-badge">Oracle ACE Associate</span>
-      </div>
+  <div style="display:flex;flex-direction:column;line-height:1.1">
+    <div class="logo-txt">Oracle <em>APEX</em> Agent</div>
+    <div class="creator-line">
+      by Ravindra Thapliyal · 
+      <span class="ace-badge">Oracle ACE Associate</span>
     </div>
   </div>
+</div>
 
   <div class="hdr-r">
     <div class="pill pill-g">APEX 24.2+</div>
