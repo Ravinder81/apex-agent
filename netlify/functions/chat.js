@@ -1,6 +1,8 @@
 exports.handler = async function (event) {
   try {
-    // ✅ Only allow POST
+    /* ─────────────────────────────────────────── */
+    /* 1️⃣ METHOD VALIDATION */
+    /* ─────────────────────────────────────────── */
     if (event.httpMethod !== "POST") {
       return {
         statusCode: 405,
@@ -8,7 +10,6 @@ exports.handler = async function (event) {
       };
     }
 
-    // ✅ Safe JSON parsing
     if (!event.body) {
       return {
         statusCode: 400,
@@ -19,7 +20,7 @@ exports.handler = async function (event) {
     let parsed;
     try {
       parsed = JSON.parse(event.body);
-    } catch (err) {
+    } catch {
       return {
         statusCode: 400,
         body: JSON.stringify({ error: "Invalid JSON format" })
@@ -27,53 +28,79 @@ exports.handler = async function (event) {
     }
 
     const message = parsed.message;
-    if (!message) {
+    if (!message || typeof message !== "string") {
       return {
         statusCode: 400,
         body: JSON.stringify({ error: "Message is required" })
       };
     }
 
-    // ✅ Call OpenRouter
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://apexagent01.netlify.app",
-        "X-Title": "Oracle APEX AI Agent"
-      },
-      body: JSON.stringify({
-        model: "anthropic/claude-3-haiku",
-        messages: [
-          {
-            role: "system",
-            content: "You are an Oracle APEX expert assistant."
-          },
-          {
-            role: "user",
-            content: message
-          }
-        ],
-        max_tokens: 800
-      })
-    });
+    /* ─────────────────────────────────────────── */
+    /* 2️⃣ STRICT SYSTEM PROMPT (BACKEND ENFORCED) */
+    /* ─────────────────────────────────────────── */
+    const systemPrompt = `
+You are a senior Oracle APEX architect.
+
+Respond using EXACTLY these sections in this order:
+
+Overview
+Secure Implementation
+APEX Configuration Steps
+Where to Place the Code
+Important Notes
+Optional Advanced Improvement
+Follow-up Questions
+
+Rules:
+- No beginner explanations.
+- No filler text.
+- No generic advice.
+- All code must use triple backticks with language tag.
+- Where to Place section must map to every code block.
+- Follow-up Questions must contain exactly 3 questions starting with Q:
+- Use Oracle APEX 24.2 property names.
+- Use → arrows for navigation paths.
+`;
+
+    /* ─────────────────────────────────────────── */
+    /* 3️⃣ CALL OPENROUTER SAFELY */
+    /* ─────────────────────────────────────────── */
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://oracle-apex-agent.netlify.app",
+          "X-Title": "Oracle APEX AI Agent"
+        },
+        body: JSON.stringify({
+          model: "anthropic/claude-3-haiku",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: message }
+          ],
+          temperature: 0.2,
+          max_tokens: 1500
+        })
+      }
+    );
 
     const data = await response.json();
 
-    console.log("FULL OPENROUTER RESPONSE:", JSON.stringify(data, null, 2));
-
-    // ✅ Handle API-level errors
     if (!response.ok) {
       return {
         statusCode: response.status,
         body: JSON.stringify({
-          error: data?.error || "OpenRouter API error"
+          error: data?.error?.message || "OpenRouter API error"
         })
       };
     }
 
-    // ✅ Extract reply safely
+    /* ─────────────────────────────────────────── */
+    /* 4️⃣ SAFE REPLY EXTRACTION */
+    /* ─────────────────────────────────────────── */
     let reply = "No response generated.";
 
     if (data.choices && data.choices.length > 0) {
@@ -82,17 +109,21 @@ exports.handler = async function (event) {
       if (typeof msg.content === "string") {
         reply = msg.content;
       } else if (Array.isArray(msg.content)) {
-        reply = msg.content
-          .map(part => part.text || "")
-          .join(" ");
+        reply = msg.content.map(p => p.text || "").join(" ");
       }
+    }
+
+    /* ─────────────────────────────────────────── */
+    /* 5️⃣ ANTI-TRUNCATION CHECK */
+    /* If model stopped early, gently warn */
+    /* ─────────────────────────────────────────── */
+    if (!reply.endsWith("```") && reply.length > 1400) {
+      reply += "\n\n⚠️ Response may be truncated due to model token limit.";
     }
 
     return {
       statusCode: 200,
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ reply })
     };
 
