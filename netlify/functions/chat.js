@@ -15,8 +15,30 @@ Structure:
 */
 const userLimits = {};
 
+/* Metrics store */
+const metrics = {
+  totalRequests: 0,
+  uniqueUsers: new Set(),
+  perUserCount: {}
+};
+
 exports.handler = async function (event) {
   try {
+
+    /* ───────────────────────────── */
+    /* 📊 STATS ENDPOINT (GET) */
+    /* ───────────────────────────── */
+    if (event.httpMethod === "GET") {
+      return {
+        statusCode: 200,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          totalRequests: metrics.totalRequests,
+          uniqueUsers: metrics.uniqueUsers.size,
+          perUserCount: metrics.perUserCount
+        })
+      };
+    }
 
     /* ───────────────────────────── */
     /* 1️⃣ METHOD VALIDATION */
@@ -74,6 +96,7 @@ exports.handler = async function (event) {
     const userIP = rawIP.split(",")[0].trim();
     const now = Date.now();
 
+    /* Initialize user limit tracking */
     if (!userLimits[userIP]) {
       userLimits[userIP] = {
         dailyCount: 0,
@@ -84,6 +107,17 @@ exports.handler = async function (event) {
     }
 
     const userData = userLimits[userIP];
+
+    /* ───────────────────────────── */
+    /* 📊 METRICS UPDATE */
+    /* ───────────────────────────── */
+    metrics.totalRequests++;
+    metrics.uniqueUsers.add(userIP);
+
+    if (!metrics.perUserCount[userIP]) {
+      metrics.perUserCount[userIP] = 0;
+    }
+    metrics.perUserCount[userIP]++;
 
     /* ───────────────────────────── */
     /* 3️⃣ RESET DAILY IF NEEDED */
@@ -102,7 +136,27 @@ exports.handler = async function (event) {
     }
 
     /* ───────────────────────────── */
-    /* 5️⃣ MINUTE RATE LIMIT CHECK */
+    /* 5️⃣ GREETING FILTER */
+    /* ───────────────────────────── */
+    const lowerMsg = message.trim().toLowerCase();
+
+    if (
+      lowerMsg.length < 20 &&
+      /^(hi|hello|hey|good morning|good afternoon|good evening|how are you|thanks|thank you)/.test(lowerMsg)
+    ) {
+      return {
+        statusCode: 200,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reply:
+            "Hello 👋 I'm your Oracle APEX AI assistant. Ask me any Oracle APEX technical question and I’ll provide a structured implementation guide.",
+          remainingQuestions: DAILY_LIMIT - userData.dailyCount
+        })
+      };
+    }
+
+    /* ───────────────────────────── */
+    /* 6️⃣ MINUTE RATE LIMIT */
     /* ───────────────────────────── */
     if (userData.minuteCount >= MAX_PER_MINUTE) {
       return {
@@ -114,35 +168,23 @@ exports.handler = async function (event) {
     }
 
     /* ───────────────────────────── */
-    /* 6️⃣ DAILY LIMIT CHECK */
+    /* 7️⃣ DAILY LIMIT */
     /* ───────────────────────────── */
     if (userData.dailyCount >= DAILY_LIMIT) {
-      const hoursLeft = Math.ceil(
-        (userData.dailyReset - now) / (60 * 60 * 1000)
-      );
-
       return {
         statusCode: 429,
         body: JSON.stringify({
-          error: `Daily limit reached. You can ask only 10 questions every 24 hours.`,
-          retryAfterHours: hoursLeft
+          error: "Daily limit reached. You can ask only 10 questions every 24 hours."
         })
       };
     }
 
-    /* Increment counters */
+    /* Increment usage counters */
     userData.minuteCount++;
     userData.dailyCount++;
 
-    console.log({
-      ip: userIP,
-      dailyUsed: userData.dailyCount,
-      minuteUsed: userData.minuteCount,
-      remainingToday: DAILY_LIMIT - userData.dailyCount
-    });
-
     /* ───────────────────────────── */
-    /* 7️⃣ SYSTEM PROMPT */
+    /* 8️⃣ SYSTEM PROMPT */
     /* ───────────────────────────── */
     const systemPrompt = `
 You are a senior Oracle APEX architect.
@@ -169,7 +211,7 @@ Rules:
 `;
 
     /* ───────────────────────────── */
-    /* 8️⃣ CALL OPENROUTER */
+    /* 9️⃣ CALL OPENROUTER */
     /* ───────────────────────────── */
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -177,9 +219,7 @@ Rules:
         method: "POST",
         headers: {
           "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://oracle-apex-agent.netlify.app",
-          "X-Title": "Oracle APEX AI Agent"
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           model: "anthropic/claude-3-haiku",
@@ -204,14 +244,11 @@ Rules:
       };
     }
 
-    /* ───────────────────────────── */
-    /* 9️⃣ EXTRACT RESPONSE */
-    /* ───────────────────────────── */
+    /* Extract reply */
     let reply = "No response generated.";
 
     if (data.choices && data.choices.length > 0) {
       const msg = data.choices[0].message;
-
       if (typeof msg.content === "string") {
         reply = msg.content;
       } else if (Array.isArray(msg.content)) {
