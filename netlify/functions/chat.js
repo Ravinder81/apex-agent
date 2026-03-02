@@ -12,7 +12,9 @@ const metrics = {
 exports.handler = async function (event) {
   try {
 
+    /* ───────────────────────────── */
     /* STATS ENDPOINT */
+    /* ───────────────────────────── */
     if (event.httpMethod === "GET") {
       return {
         statusCode: 200,
@@ -43,6 +45,29 @@ exports.handler = async function (event) {
     if (message.length > MAX_PROMPT_LENGTH) {
       return { statusCode: 400, body: JSON.stringify({ error: "Prompt too long." }) };
     }
+
+    /* ───────────────────────────── */
+    /* GREETING SHORTCUT */
+    /* ───────────────────────────── */
+    const lower = message.toLowerCase();
+
+    if (
+      lower.length < 25 &&
+      /^(hi|hello|hey|good morning|good afternoon|good evening|thanks|thank you)/i.test(lower)
+    ) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          reply:
+            "Hello 👋 I’m your Oracle APEX AI Agent. Ask any Oracle APEX development question and I’ll respond with a structured, production-focused answer.",
+          remainingQuestions: DAILY_LIMIT
+        })
+      };
+    }
+
+    /* ───────────────────────────── */
+    /* RATE LIMITING */
+    /* ───────────────────────────── */
 
     const rawIP =
       event.headers["x-forwarded-for"] ||
@@ -96,27 +121,11 @@ exports.handler = async function (event) {
     userData.dailyCount++;
 
     /* ───────────────────────────── */
-    /* SMART TOPIC CLASSIFICATION */
+    /* INTENT DETECTION */
     /* ───────────────────────────── */
 
-    const lower = message.toLowerCase();
-
-    const clearlyNotApex =
-      /(porn|movie|game|celebrity|weather|bitcoin|crypto|football|ipl|politics)/i.test(lower);
-
-    if (clearlyNotApex) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          reply:
-            "This assistant focuses strictly on Oracle APEX development topics. Please ask a relevant technical question.",
-          remainingQuestions: DAILY_LIMIT - userData.dailyCount
-        })
-      };
-    }
-
     const implementationIntent =
-      /(how|create|implement|configure|setup|build|code|secure|optimize)/i.test(lower);
+      /(how|create|implement|configure|setup|build|code|secure|optimize|plsql|sql|dynamic action|interactive)/i.test(lower);
 
     /* ───────────────────────────── */
     /* ADAPTIVE SYSTEM PROMPT */
@@ -125,6 +134,8 @@ exports.handler = async function (event) {
     const systemPrompt = implementationIntent
       ? `
 You are a senior Oracle APEX architect.
+
+Interpret ALL user questions strictly within Oracle APEX development context.
 
 Respond using EXACTLY these sections in this order:
 
@@ -146,20 +157,23 @@ Rules:
       : `
 You are a senior Oracle APEX architect.
 
-Respond in structured sections but do NOT force implementation format.
+Interpret ALL user questions strictly within Oracle APEX development context.
 
-Use:
+Respond using structured sections:
+
 Overview
 Key Points
 Practical Guidance
-Follow-up Questions (3 only)
+Follow-up Questions
 
-No filler. No generic advice.
-Interpret all questions in Oracle APEX context.
+Rules:
+- No filler.
+- No generic advice.
+- Follow-up Questions must contain exactly 3 practical questions starting with Q:
 `;
 
     /* ───────────────────────────── */
-    /* CALL OPENROUTER */
+    /* OPENROUTER CALL */
     /* ───────────────────────────── */
 
     const response = await fetch(
@@ -167,7 +181,7 @@ Interpret all questions in Oracle APEX context.
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+             Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -193,7 +207,8 @@ Interpret all questions in Oracle APEX context.
       };
     }
 
-    let reply = data.choices?.[0]?.message?.content || "No response generated.";
+    const reply =
+      data.choices?.[0]?.message?.content || "No response generated.";
 
     return {
       statusCode: 200,
