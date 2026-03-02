@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Oracle APEX Agent</title>
 <link rel="icon" href="favicon.svg">
 <link rel="shortcut icon" href="favicon.svg">
@@ -65,7 +65,7 @@ header{
 
 /* ── MODE SELECTOR (header) ──────────────────── */
 /* ── LAYOUT ──────────────────────────────────── */
-.layout{.layout{
+.layout{
   display:flex;
   height:100vh;
   padding-top:var(--header-h);
@@ -677,7 +677,7 @@ function renderAnswer(raw, container){
     const el=document.createElement('div'); el.className='ans-section';
     const rows=d.wherecode.map(w=>`
       <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-        <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--blue);background:var(--blue-l);border:1px solid var(--blue-m);padding:2px 9px;border-radius:6px;white-space:nowrap;flex-wrap:wrap;line-height:1.6">${esc(w.label)}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--blue);background:var(--blue-l);border:1px solid var(--blue-m);padding:2px 9px;border-radius:6px;white-space:normal;word-break:break-word;line-height:1.6">${esc(w.label)}</span>
         <span style="font-size:12.5px;color:var(--mid);line-height:1.55;padding-top:1px">${esc(w.detail)}</span>
       </div>`).join('');
     el.innerHTML=`<div class="sec-hdr">📍 Where to Place the Code</div>
