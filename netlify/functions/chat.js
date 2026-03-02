@@ -1,8 +1,23 @@
+const DAILY_LIMIT = 10;
+const MAX_PROMPT_LENGTH = 3000;
+
+/*
+Structure:
+{
+  "IP": {
+      count: Number,
+      resetTime: Timestamp
+  }
+}
+*/
+const userLimits = {};
+
 exports.handler = async function (event) {
   try {
-    /* ─────────────────────────────────────────── */
+
+    /* ───────────────────────────── */
     /* 1️⃣ METHOD VALIDATION */
-    /* ─────────────────────────────────────────── */
+    /* ───────────────────────────── */
     if (event.httpMethod !== "POST") {
       return {
         statusCode: 405,
@@ -28,6 +43,7 @@ exports.handler = async function (event) {
     }
 
     const message = parsed.message;
+
     if (!message || typeof message !== "string") {
       return {
         statusCode: 400,
@@ -35,9 +51,65 @@ exports.handler = async function (event) {
       };
     }
 
-    /* ─────────────────────────────────────────── */
-    /* 2️⃣ STRICT SYSTEM PROMPT (BACKEND ENFORCED) */
-    /* ─────────────────────────────────────────── */
+    if (message.length > MAX_PROMPT_LENGTH) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: "Prompt too long. Please shorten your question."
+        })
+      };
+    }
+
+    /* ───────────────────────────── */
+    /* 2️⃣ USER IDENTIFICATION */
+    /* ───────────────────────────── */
+    const userIP =
+      event.headers["x-forwarded-for"] ||
+      event.headers["client-ip"] ||
+      "unknown";
+
+    const now = Date.now();
+
+    if (!userLimits[userIP]) {
+      userLimits[userIP] = {
+        count: 0,
+        resetTime: now + (24 * 60 * 60 * 1000)
+      };
+    }
+
+    const userData = userLimits[userIP];
+
+    /* Reset after 24 hours */
+    if (now > userData.resetTime) {
+      userData.count = 0;
+      userData.resetTime = now + (24 * 60 * 60 * 1000);
+    }
+
+    /* ───────────────────────────── */
+    /* 3️⃣ DAILY LIMIT CHECK */
+    /* ───────────────────────────── */
+    if (userData.count >= DAILY_LIMIT) {
+      const remainingTime = Math.ceil(
+        (userData.resetTime - now) / (60 * 60 * 1000)
+      );
+
+      return {
+        statusCode: 429,
+        body: JSON.stringify({
+          error: `Daily limit reached. You can ask only 10 questions every 24 hours.`,
+          retryAfterHours: remainingTime
+        })
+      };
+    }
+
+    userData.count++;
+
+    console.log("User IP:", userIP);
+    console.log("Question Count:", userData.count);
+
+    /* ───────────────────────────── */
+    /* 4️⃣ STRICT SYSTEM PROMPT */
+    /* ───────────────────────────── */
     const systemPrompt = `
 You are a senior Oracle APEX architect.
 
@@ -62,9 +134,9 @@ Rules:
 - Use → arrows for navigation paths.
 `;
 
-    /* ─────────────────────────────────────────── */
-    /* 3️⃣ CALL OPENROUTER SAFELY */
-    /* ─────────────────────────────────────────── */
+    /* ───────────────────────────── */
+    /* 5️⃣ CALL OPENROUTER */
+    /* ───────────────────────────── */
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {
@@ -98,9 +170,16 @@ Rules:
       };
     }
 
-    /* ─────────────────────────────────────────── */
-    /* 4️⃣ SAFE REPLY EXTRACTION */
-    /* ─────────────────────────────────────────── */
+    /* ───────────────────────────── */
+    /* 6️⃣ TOKEN LOGGING */
+    /* ───────────────────────────── */
+    if (data.usage) {
+      console.log("Token usage:", data.usage);
+    }
+
+    /* ───────────────────────────── */
+    /* 7️⃣ SAFE REPLY EXTRACTION */
+    /* ───────────────────────────── */
     let reply = "No response generated.";
 
     if (data.choices && data.choices.length > 0) {
@@ -113,10 +192,7 @@ Rules:
       }
     }
 
-    /* ─────────────────────────────────────────── */
-    /* 5️⃣ ANTI-TRUNCATION CHECK */
-    /* If model stopped early, gently warn */
-    /* ─────────────────────────────────────────── */
+    /* Anti-truncation indicator */
     if (!reply.endsWith("```") && reply.length > 1400) {
       reply += "\n\n⚠️ Response may be truncated due to model token limit.";
     }
@@ -124,7 +200,10 @@ Rules:
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reply })
+      body: JSON.stringify({
+        reply,
+        remainingQuestions: DAILY_LIMIT - userData.count
+      })
     };
 
   } catch (error) {
