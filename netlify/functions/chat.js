@@ -96,7 +96,7 @@ exports.handler = async function (event) {
     const userIP = rawIP.split(",")[0].trim();
     const now = Date.now();
 
-    /* Initialize user limit tracking */
+    /* Initialize tracking */
     if (!userLimits[userIP]) {
       userLimits[userIP] = {
         dailyCount: 0,
@@ -156,7 +156,22 @@ exports.handler = async function (event) {
     }
 
     /* ───────────────────────────── */
-    /* 6️⃣ MINUTE RATE LIMIT */
+    /* 6️⃣ ORACLE APEX TOPIC FILTER */
+    /* ───────────────────────────── */
+    if (!/apex|oracle|interactive report|interactive grid|dynamic action|plsql|ords|collection|authentication|authorization|sql workshop/i.test(message)) {
+      return {
+        statusCode: 200,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reply:
+            "This assistant is dedicated to Oracle APEX technical questions only. Please ask a specific Oracle APEX development question.",
+          remainingQuestions: DAILY_LIMIT - userData.dailyCount
+        })
+      };
+    }
+
+    /* ───────────────────────────── */
+    /* 7️⃣ MINUTE RATE LIMIT */
     /* ───────────────────────────── */
     if (userData.minuteCount >= MAX_PER_MINUTE) {
       return {
@@ -168,7 +183,7 @@ exports.handler = async function (event) {
     }
 
     /* ───────────────────────────── */
-    /* 7️⃣ DAILY LIMIT */
+    /* 8️⃣ DAILY LIMIT */
     /* ───────────────────────────── */
     if (userData.dailyCount >= DAILY_LIMIT) {
       return {
@@ -179,12 +194,12 @@ exports.handler = async function (event) {
       };
     }
 
-    /* Increment usage counters */
+    /* Increment counters */
     userData.minuteCount++;
     userData.dailyCount++;
 
     /* ───────────────────────────── */
-    /* 8️⃣ SYSTEM PROMPT */
+    /* 9️⃣ SYSTEM PROMPT */
     /* ───────────────────────────── */
     const systemPrompt = `
 You are a senior Oracle APEX architect.
@@ -211,7 +226,7 @@ Rules:
 `;
 
     /* ───────────────────────────── */
-    /* 9️⃣ CALL OPENROUTER */
+    /* 🔟 CALL OPENROUTER */
     /* ───────────────────────────── */
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
