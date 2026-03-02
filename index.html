@@ -23,10 +23,18 @@
   --sh2:0 4px 14px rgba(15,23,42,.08),0 2px 4px rgba(15,23,42,.04);
   --sh3:0 10px 30px rgba(15,23,42,.10);
   --r:12px;
+  --header-h:62px;
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  height:100%;
+  width:100%;
+  overflow:hidden;
+}
 
 /* ── HEADER ─────────────────────────────────── */
 header{
@@ -57,8 +65,13 @@ header{
 
 /* ── MODE SELECTOR (header) ──────────────────── */
 /* ── LAYOUT ──────────────────────────────────── */
-.layout{display:flex;height:100vh;padding-top:62px}
-
+.layout{.layout{
+  display:flex;
+  height:100vh;
+  padding-top:var(--header-h);
+  overflow:hidden;
+  width:100%;
+}
 /* ── SIDEBAR ─────────────────────────────────── */
 .sidebar{
   width:242px;flex-shrink:0;background:var(--white);
@@ -94,7 +107,14 @@ header{
 
 /* mode tag on quick-ask buttons */
 /* ── MAIN ────────────────────────────────────── */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.main{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  height:100%;
+}
 
 /* ── WELCOME ─────────────────────────────────── */
 .welcome{
@@ -128,7 +148,7 @@ header{
 .ex-card:hover .ex-txt{color:var(--blue)}
 
 /* ── MESSAGES ────────────────────────────────── */
-.messages{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:20px;scroll-behavior:smooth}
+.messages{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px 24px; min-height:0;display:flex;flex-direction:column;gap:20px;scroll-behavior:smooth}
 .messages::-webkit-scrollbar{width:4px}
 .messages::-webkit-scrollbar-thumb{background:var(--border-s);border-radius:2px}
 
@@ -147,7 +167,14 @@ header{
   border-radius:9px;display:flex;align-items:center;justify-content:center;
   font-size:14px;box-shadow:0 2px 8px rgba(26,86,219,.22);
 }
-.ai-body{flex:1;min-width:0}
+.ai-body{
+  flex:1;
+  min-width:0;
+}
+
+.ans-section{
+  min-width:0;
+}
 .ai-lbl-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .ai-lbl{font-size:10.5px;font-family:'DM Mono',monospace;color:var(--blue);letter-spacing:.8px;font-weight:500}
 /* ── ANSWER SECTIONS ─────────────────────────── */
@@ -315,6 +342,7 @@ header{
 
 /* input */
 .input-area{
+   flex-shrink:0;
   padding:12px 20px 16px;background:var(--white);
   border-top:1px solid var(--border);
   box-shadow:0 -2px 10px rgba(15,23,42,.04);
@@ -346,10 +374,9 @@ header{
 
 @media(max-width:780px){
   .sidebar{display:none}
-  .welcome h1{font-size:21px}
-  .ex-grid{grid-template-columns:1fr}
+  .layout{width:100%;overflow:hidden}
   .u-bubble{max-width:88%}
-  .messages{padding:14px}
+  .messages{padding:14px 12px}
 }
 
 .fup-q{
@@ -650,7 +677,7 @@ function renderAnswer(raw, container){
     const el=document.createElement('div'); el.className='ans-section';
     const rows=d.wherecode.map(w=>`
       <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-        <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--blue);background:var(--blue-l);border:1px solid var(--blue-m);padding:2px 9px;border-radius:6px;white-space:nowrap;flex-shrink:0;line-height:1.6">${esc(w.label)}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--blue);background:var(--blue-l);border:1px solid var(--blue-m);padding:2px 9px;border-radius:6px;white-space:nowrap;flex-wrap:wrap;line-height:1.6">${esc(w.label)}</span>
         <span style="font-size:12.5px;color:var(--mid);line-height:1.55;padding-top:1px">${esc(w.detail)}</span>
       </div>`).join('');
     el.innerHTML=`<div class="sec-hdr">📍 Where to Place the Code</div>
