@@ -1,29 +1,30 @@
-exports.handler = async function(event) {
+exports.handler = async function (event) {
+  const { message } = JSON.parse(event.body);
 
-  try {
-    const body = JSON.parse(event.body);
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://apexagent01.netlify.app",
+      "X-Title": "Oracle APEX AI Agent"
+    },
+    body: JSON.stringify({
+      model: "anthropic/claude-3-haiku",
+      messages: [
+        { role: "system", content: "You are an Oracle APEX expert assistant." },
+        { role: "user", content: message }
+      ],
+      max_tokens: 500
+    })
+  });
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify(body)
-    });
+  const data = await response.json();
 
-    const data = await response.json();
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify(data)
-    };
-
-  } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Function error", details: error.message })
-    };
-  }
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      reply: data.choices?.[0]?.message?.content || "No response"
+    })
+  };
 };
