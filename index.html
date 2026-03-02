@@ -4,66 +4,765 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Oracle APEX Agent</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-body{font-family:'DM Sans',sans-serif;background:#f3f6fb;margin:0}
-header{height:60px;background:#fff;border-bottom:1px solid #e2e8f4;display:flex;align-items:center;justify-content:space-between;padding:0 20px}
-.logo{font-weight:700}
-.layout{display:flex;height:calc(100vh - 60px)}
-.sidebar{width:220px;background:#fff;border-right:1px solid #e2e8f4;padding:10px}
-.main{flex:1;display:flex;flex-direction:column}
-.messages{flex:1;overflow-y:auto;padding:20px}
-.input-area{padding:10px;background:#fff;border-top:1px solid #e2e8f4}
-textarea{width:100%;resize:none;padding:10px;border-radius:8px;border:1px solid #cbd5e1}
-button{padding:8px 12px;border-radius:6px;border:none;background:#1a56db;color:#fff;cursor:pointer}
-.msg-user{text-align:right;margin-bottom:15px}
-.u-bubble{display:inline-block;background:#1a56db;color:#fff;padding:10px 14px;border-radius:14px}
-.msg-ai{display:flex;gap:10px;margin-bottom:20px}
-.ai-body{background:#fff;border:1px solid #e2e8f4;border-radius:12px;padding:14px;width:100%}
+:root {
+  --bg:#f3f6fb; --white:#fff; --surface:#f0f3f9; --border:#e2e8f4; --border-s:#c8d3e8;
+  --blue:#1a56db; --blue-h:#1341b0; --blue-l:#eff4ff; --blue-m:#c7d7fd; --blue-g:rgba(26,86,219,.10);
+  --text:#0f172a; --mid:#475569; --dim:#94a3b8;
+  --green:#059669; --green-bg:#ecfdf5; --green-b:#a7f3d0;
+  --red:#dc2626; --red-bg:#fef2f2; --red-b:#fca5a5;
+  --amber:#b45309; --amber-bg:#fffbeb; --amber-b:#fde68a;
+  --purple:#7c3aed; --purple-bg:#f5f3ff; --purple-b:#ddd6fe;
+  --teal:#0d9488; --teal-bg:#f0fdfa; --teal-b:#99f6e4;
+  --orange:#ea580c; --orange-bg:#fff7ed; --orange-b:#fed7aa;
+  --sh0:0 1px 2px rgba(15,23,42,.06);
+  --sh1:0 1px 4px rgba(15,23,42,.08),0 1px 2px rgba(15,23,42,.04);
+  --sh2:0 4px 14px rgba(15,23,42,.08),0 2px 4px rgba(15,23,42,.04);
+  --sh3:0 10px 30px rgba(15,23,42,.10);
+  --r:12px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ── HEADER ─────────────────────────────────── */
+header{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  background:var(--white);border-bottom:1px solid var(--border);
+  box-shadow:var(--sh0);height:62px;
+  display:flex;align-items:center;justify-content:space-between;padding:0 20px;
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{
+  width:36px;height:36px;
+  background:linear-gradient(135deg,#1a56db,#3b82f6);
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-family:'DM Mono',monospace;font-size:12px;color:#fff;
+  box-shadow:0 2px 8px rgba(26,86,219,.32);flex-shrink:0;
+}
+.logo-txt{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.logo-txt em{font-style:normal;color:var(--blue)}
+.hdr-r{display:flex;align-items:center;gap:8px}
+.pill{font-size:11px;font-family:'DM Mono',monospace;font-weight:500;padding:4px 11px;border-radius:20px;white-space:nowrap}
+.pill-g{color:var(--green);background:var(--green-bg);border:1px solid var(--green-b)}
+.pill-b{color:var(--blue);background:var(--blue-l);border:1px solid var(--blue-m)}
+
+/* ── MODE SELECTOR (header) ──────────────────── */
+/* ── LAYOUT ──────────────────────────────────── */
+.layout{display:flex;height:100vh;padding-top:62px}
+
+/* ── SIDEBAR ─────────────────────────────────── */
+.sidebar{
+  width:242px;flex-shrink:0;background:var(--white);
+  border-right:1px solid var(--border);overflow-y:auto;
+  display:flex;flex-direction:column;padding:14px 10px;
+}
+.sidebar::-webkit-scrollbar{width:3px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border-s);border-radius:2px}
+.s-lbl{
+  font-size:10px;font-family:'DM Mono',monospace;font-weight:500;
+  color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;
+  padding:0 8px;margin-bottom:5px;
+}
+.s-btn{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;border-radius:8px;border:none;
+  background:transparent;color:var(--mid);cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;
+  text-align:left;width:100%;transition:background .13s,color .13s;margin-bottom:1px;
+}
+.s-btn .ic{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.s-btn:hover,.s-btn.active{background:var(--blue-l);color:var(--blue)}
+.s-btn.active{font-weight:600}
+.s-div{height:1px;background:var(--border);margin:10px 0}
+.q-btn{
+  padding:8px 10px;border-radius:8px;border:1px solid var(--border);
+  background:var(--white);color:var(--mid);cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:12px;
+  text-align:left;width:100%;line-height:1.5;
+  transition:all .13s;margin-bottom:4px;
+}
+.q-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
+
+/* mode tag on quick-ask buttons */
+/* ── MAIN ────────────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── WELCOME ─────────────────────────────────── */
+.welcome{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:32px 24px;text-align:center;
+}
+.w-orb{
+  width:68px;height:68px;
+  background:linear-gradient(135deg,#1a56db,#3b82f6);
+  border-radius:18px;display:flex;align-items:center;justify-content:center;
+  font-size:28px;margin-bottom:18px;
+  box-shadow:0 8px 30px rgba(26,86,219,.26);
+  animation:orb 3.2s ease-in-out infinite;
+}
+@keyframes orb{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.welcome h1{font-size:26px;font-weight:700;letter-spacing:-.6px;margin-bottom:8px}
+.welcome h1 span{color:var(--blue)}
+.w-sub{color:var(--mid);font-size:13.5px;max-width:440px;line-height:1.7;margin-bottom:20px}
+
+/* mode pills in welcome */
+.ex-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;max-width:520px;width:100%}
+.ex-card{
+  background:var(--white);border:1px solid var(--border);border-radius:var(--r);
+  padding:13px;cursor:pointer;text-align:left;
+  transition:all .15s;box-shadow:var(--sh0);
+}
+.ex-card:hover{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-g),var(--sh2);transform:translateY(-2px)}
+.ex-em{font-size:17px;margin-bottom:6px}
+.ex-txt{font-size:12.5px;color:var(--mid);line-height:1.45}
+.ex-card:hover .ex-txt{color:var(--blue)}
+
+/* ── MESSAGES ────────────────────────────────── */
+.messages{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:20px;scroll-behavior:smooth}
+.messages::-webkit-scrollbar{width:4px}
+.messages::-webkit-scrollbar-thumb{background:var(--border-s);border-radius:2px}
+
+.msg-user{display:flex;justify-content:flex-end}
+.u-bubble{
+  background:linear-gradient(135deg,#1a56db,#3b82f6);color:#fff;
+  padding:11px 16px;border-radius:18px 18px 4px 18px;
+  max-width:62%;font-size:13.5px;font-weight:500;line-height:1.55;
+  box-shadow:0 2px 8px rgba(26,86,219,.26);
+}
+
+.msg-ai{display:flex;gap:10px;align-items:flex-start}
+.ai-av{
+  width:32px;height:32px;flex-shrink:0;margin-top:2px;
+  background:linear-gradient(135deg,#1a56db,#3b82f6);
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:14px;box-shadow:0 2px 8px rgba(26,86,219,.22);
+}
+.ai-body{flex:1;min-width:0}
+.ai-lbl-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.ai-lbl{font-size:10.5px;font-family:'DM Mono',monospace;color:var(--blue);letter-spacing:.8px;font-weight:500}
+/* ── ANSWER SECTIONS ─────────────────────────── */
+.ans-section{margin-bottom:8px}
+
+/* overview */
+.overview-card{
+  background:var(--blue-l);border:1px solid var(--blue-m);
+  border-radius:var(--r);padding:13px 15px;
+  font-size:13.5px;color:var(--text);line-height:1.7;
+}
+.sec-hdr{
+  display:flex;align-items:center;gap:7px;
+  font-size:11px;font-family:'DM Mono',monospace;font-weight:500;
+  color:var(--dim);letter-spacing:1px;text-transform:uppercase;
+  margin-bottom:7px;
+}
+
+/* when to use */
+.when-card{
+  background:var(--teal-bg);border:1px solid var(--teal-b);
+  border-radius:var(--r);padding:12px 15px;font-size:13px;color:#134e4a;line-height:1.65;
+}
+
+/* UI path */
+.uipath-card{
+  background:#1e293b;border-radius:var(--r);padding:14px 16px;
+  font-family:'DM Mono',monospace;font-size:12.5px;
+}
+.uipath-line{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.uipath-line:last-child{margin-bottom:0}
+.ui-arrow{color:#64748b;flex-shrink:0;margin-top:1px}
+.ui-crumb{color:#e2e8f0;line-height:1.5}
+.ui-crumb strong{color:#60a5fa}
+.ui-field{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid #2d3748}
+.ui-field:last-child{border-bottom:none}
+.ui-fname{color:#94a3b8;min-width:130px;flex-shrink:0;font-size:11.5px}
+.ui-fval{color:#fbbf24;font-size:12px}
+
+/* step cards */
+.step-cards{display:flex;flex-direction:column;gap:8px}
+.step-card{
+  background:var(--white);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;box-shadow:var(--sh0);
+  transition:box-shadow .18s,border-color .18s;
+  animation:fadeUp .28s ease both;opacity:0;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.step-card:hover{border-color:var(--blue-m);box-shadow:var(--sh2)}
+.step-hd{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);
+}
+.step-n{
+  width:26px;height:26px;flex-shrink:0;
+  background:linear-gradient(135deg,#1a56db,#3b82f6);color:#fff;
+  border-radius:7px;display:flex;align-items:center;justify-content:center;
+  font-family:'DM Mono',monospace;font-size:11px;font-weight:500;
+  box-shadow:0 1px 4px rgba(26,86,219,.28);
+}
+.step-ttl{font-size:13px;font-weight:600;color:var(--text);flex:1;line-height:1.3}
+.step-bd{padding:12px 14px}
+.step-txt{font-size:13px;line-height:1.72;color:var(--mid)}
+
+/* code block */
+.code-wrap{background:#f8fafc;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:10px}
+.code-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 13px;background:var(--surface);border-bottom:1px solid var(--border);
+}
+.code-lang{font-size:10.5px;font-family:'DM Mono',monospace;color:var(--blue);font-weight:500;letter-spacing:.4px}
+.copy-btn{
+  font-size:11px;font-family:'DM Mono',monospace;color:var(--dim);
+  background:none;border:1px solid var(--border);cursor:pointer;
+  padding:2px 9px;border-radius:5px;transition:all .14s;
+}
+.copy-btn:hover{color:var(--blue);border-color:var(--blue);background:var(--blue-l)}
+.code-pre{
+  padding:12px 14px;font-family:'DM Mono',monospace;font-size:12px;
+  line-height:1.78;color:#334155;overflow-x:auto;white-space:pre;
+}
+.kw{color:#1a56db;font-weight:500}.fn{color:#7c3aed}.str{color:#059669}.cm{color:#94a3b8;font-style:italic}.num{color:#d97706}
+
+/* info blocks */
+.info-block{border-radius:var(--r);padding:12px 15px;margin-top:4px}
+.info-block.security{background:var(--red-bg);border:1px solid var(--red-b)}
+.info-block.performance{background:var(--purple-bg);border:1px solid var(--purple-b)}
+.info-block.mistakes{background:var(--amber-bg);border:1px solid var(--amber-b)}
+.info-block.testing{background:var(--teal-bg);border:1px solid var(--teal-b)}
+.info-block.deploy{background:var(--orange-bg);border:1px solid var(--orange-b)}
+.info-hdr{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;margin-bottom:9px}
+.info-block.security .info-hdr{color:var(--red)}
+.info-block.performance .info-hdr{color:var(--purple)}
+.info-block.mistakes .info-hdr{color:var(--amber)}
+.info-block.testing .info-hdr{color:var(--teal)}
+.info-block.deploy .info-hdr{color:var(--orange)}
+.info-block ul{list-style:none;display:flex;flex-direction:column;gap:5px}
+.info-block li{font-size:12.5px;padding-left:16px;position:relative;line-height:1.55}
+.info-block li::before{content:'›';position:absolute;left:0;font-weight:700}
+.info-block.security li{color:#7f1d1d} .info-block.security li::before{color:var(--red)}
+.info-block.performance li{color:#4c1d95} .info-block.performance li::before{color:var(--purple)}
+.info-block.mistakes li{color:#78350f} .info-block.mistakes li::before{color:var(--amber)}
+.info-block.testing li{color:#134e4a} .info-block.testing li::before{color:var(--teal)}
+.info-block.deploy li{color:#7c2d12} .info-block.deploy li::before{color:var(--orange)}
+
+/* resources */
+.resources{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.res-lbl{font-size:10px;font-family:'DM Mono',monospace;font-weight:500;color:var(--dim);letter-spacing:1.2px;text-transform:uppercase;padding-left:2px;margin-bottom:2px}
+
+.yt-card{
+  display:flex;align-items:flex-start;gap:11px;
+  background:var(--white);border:1px solid var(--border);border-radius:var(--r);
+  padding:12px 13px;text-decoration:none;transition:all .15s;box-shadow:var(--sh0);
+}
+.yt-card:hover{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.08),var(--sh2)}
+.yt-thumb{
+  width:50px;height:36px;border-radius:6px;flex-shrink:0;
+  background:linear-gradient(135deg,#ef4444,#dc2626);
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  box-shadow:0 2px 6px rgba(220,38,38,.25);
+}
+.yt-info{flex:1;min-width:0}
+.yt-ch{font-size:10px;font-family:'DM Mono',monospace;color:#ef4444;font-weight:500;letter-spacing:.5px;margin-bottom:2px}
+.yt-ttl{font-size:12.5px;font-weight:600;color:var(--text);line-height:1.35;margin-bottom:2px}
+.yt-card:hover .yt-ttl{color:#ef4444}
+.yt-meta{font-size:11px;color:var(--dim)}
+.res-arrow{font-size:13px;color:var(--dim);align-self:center;flex-shrink:0;margin-left:4px}
+.yt-card:hover .res-arrow{color:#ef4444}
+
+.doc-card{
+  display:flex;align-items:flex-start;gap:10px;
+  background:var(--white);border:1px solid var(--border);border-radius:var(--r);
+  padding:11px 13px;text-decoration:none;transition:all .15s;box-shadow:var(--sh0);
+}
+.doc-card:hover{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-g),var(--sh2)}
+.doc-ico{width:32px;height:32px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px}
+.doc-ico.oracle{background:#fef3c7;border:1px solid #fde68a}
+.doc-ico.blog{background:var(--green-bg);border:1px solid var(--green-b)}
+.doc-ico.article{background:var(--purple-bg);border:1px solid var(--purple-b)}
+.doc-info{flex:1;min-width:0}
+.doc-src{font-size:10px;font-family:'DM Mono',monospace;font-weight:500;letter-spacing:.4px;margin-bottom:2px}
+.doc-src.oracle{color:#d97706}.doc-src.blog{color:var(--green)}.doc-src.article{color:var(--purple)}
+.doc-ttl{font-size:12.5px;font-weight:600;color:var(--text);line-height:1.35}
+.doc-card:hover .doc-ttl{color:var(--blue)}
+.doc-card:hover .res-arrow{color:var(--blue)}
+
+/* disclaimer */
+.disclaimer{
+  display:flex;align-items:flex-start;gap:8px;
+  padding:9px 13px;background:var(--blue-l);border:1px solid var(--blue-m);
+  border-radius:8px;margin-top:8px;font-size:12px;color:#1e40af;line-height:1.55;
+}
+
+/* loading */
+.load-row{display:flex;gap:10px;align-items:flex-start}
+.load-dots{
+  display:flex;gap:5px;align-items:center;
+  padding:12px 15px;background:var(--white);
+  border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--sh0);
+}
+.ld{width:6px;height:6px;background:var(--blue);border-radius:50%;animation:ldB 1.2s ease-in-out infinite;opacity:.45}
+.ld:nth-child(2){animation-delay:.18s}.ld:nth-child(3){animation-delay:.36s}
+@keyframes ldB{0%,80%,100%{transform:scale(.65);opacity:.4}40%{transform:scale(1);opacity:1}}
+.load-txt{font-size:12px;color:var(--dim);font-style:italic;margin-left:4px}
+
+/* input */
+.input-area{
+  padding:12px 20px 16px;background:var(--white);
+  border-top:1px solid var(--border);
+  box-shadow:0 -2px 10px rgba(15,23,42,.04);
+}
+.inp-wrap{
+  display:flex;gap:9px;align-items:flex-end;
+  background:var(--bg);border:1.5px solid var(--border);
+  border-radius:13px;padding:9px 12px;transition:all .18s;
+  max-width:820px;margin:0 auto;
+}
+.inp-wrap:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-g);background:var(--white)}
+.inp{
+  flex:1;background:none;border:none;outline:none;
+  font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--text);
+  resize:none;max-height:120px;line-height:1.55;
+}
+.inp::placeholder{color:var(--dim)}
+.snd-btn{
+  width:36px;height:36px;flex-shrink:0;
+  background:linear-gradient(135deg,#1a56db,#3b82f6);border:none;
+  border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:14px;transition:all .15s;box-shadow:0 2px 6px rgba(26,86,219,.28);
+}
+.snd-btn:hover{transform:scale(1.07);box-shadow:0 4px 12px rgba(26,86,219,.38)}
+.snd-btn:disabled{opacity:.38;cursor:not-allowed;transform:none!important}
+.inp-footer{display:flex;align-items:center;justify-content:space-between;max-width:820px;margin:6px auto 0;padding:0 2px}
+.inp-hint{font-size:11px;color:var(--dim);font-family:'DM Mono',monospace}
+.hidden{display:none!important}
+
+@media(max-width:780px){
+  .sidebar{display:none}
+  .welcome h1{font-size:21px}
+  .ex-grid{grid-template-columns:1fr}
+  .u-bubble{max-width:88%}
+  .messages{padding:14px}
+}
+
+.fup-q{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:9px 13px;background:var(--white);border:1px solid var(--border);
+  border-radius:9px;cursor:pointer;transition:all .15s;margin-bottom:6px;
+}
+.fup-q:hover{border-color:var(--blue);background:var(--blue-l)}
+.fup-q:hover .fup-arrow{color:var(--blue)}
 </style>
 </head>
 <body>
 
+<!-- HEADER -->
 <header>
-  <div class="logo">Oracle APEX Agent</div>
-  <div>APEX 24.2+</div>
+  <div class="logo">
+    <div class="logo-icon">Ax</div>
+    <div class="logo-txt">Oracle <em>APEX</em> Agent</div>
+  </div>
+  <div class="hdr-r"><div class="pill pill-g">APEX 24.2+</div>
+    <div class="pill pill-b">AI POWERED</div>
+  </div>
 </header>
 
 <div class="layout">
 
+  <!-- SIDEBAR -->
   <aside class="sidebar">
-    <button onclick="askQ('How to create an Interactive Report in Oracle APEX 24.2?')">Interactive Report</button><br><br>
-    <button onclick="askQ('How to use APEX_COLLECTION API in Oracle APEX?')">Collections</button><br><br>
-    <button onclick="askQ('How to create Dynamic Actions in Oracle APEX?')">Dynamic Actions</button>
+    <div class="s-lbl">Categories</div>
+    <button class="s-btn active" onclick="setCat(this,'all')"><span class="ic">🏠</span>All Topics</button>
+    <button class="s-btn" onclick="setCat(this,'Interactive Reports')"><span class="ic">📊</span>Interactive Reports</button>
+    <button class="s-btn" onclick="setCat(this,'Interactive Grid')"><span class="ic">📋</span>Interactive Grid</button>
+    <button class="s-btn" onclick="setCat(this,'Collections')"><span class="ic">🗂️</span>Collections</button>
+    <button class="s-btn" onclick="setCat(this,'Navigation Menu')"><span class="ic">🧭</span>Navigation Menu</button>
+    <button class="s-btn" onclick="setCat(this,'Authentication')"><span class="ic">🔐</span>Authentication</button>
+    <button class="s-btn" onclick="setCat(this,'Authorization')"><span class="ic">🛡️</span>Authorization</button>
+    <button class="s-btn" onclick="setCat(this,'Dynamic Actions')"><span class="ic">⚡</span>Dynamic Actions</button>
+    <button class="s-btn" onclick="setCat(this,'Page Designer')"><span class="ic">🎨</span>Page Designer</button>
+    <button class="s-btn" onclick="setCat(this,'REST APIs & ORDS')"><span class="ic">🔗</span>REST APIs & ORDS</button>
+    <button class="s-btn" onclick="setCat(this,'UI Components')"><span class="ic">🧩</span>UI Components</button>
+    <button class="s-btn" onclick="setCat(this,'SQL Workshop')"><span class="ic">🗄️</span>SQL Workshop</button>
+    <div class="s-div"></div>
+    <div class="s-lbl">Quick Ask</div>
+    <button class="q-btn" onclick="askQ('How to create an Interactive Report in Oracle APEX 24.2?')">Create Interactive Report</button>
+    <button class="q-btn" onclick="askQ('How to use APEX_COLLECTION API with PL/SQL in Oracle APEX?')">APEX Collections API</button>
+    <button class="q-btn" onclick="askQ('How to configure enterprise Authentication scheme in Oracle APEX 24.2?')">Authentication Setup</button>
+    <button class="q-btn" onclick="askQ('How to create Dynamic Actions to show hide items in Oracle APEX?')">Dynamic Actions</button>
+    <button class="q-btn" onclick="askQ('How to create a secure REST API with ORDS in Oracle APEX 24.2?')">REST API with ORDS</button>
+    <button class="q-btn" onclick="askQ('How to optimize Interactive Report SQL query performance in Oracle APEX?')">IR Performance Tuning</button>
+    <button class="q-btn" onclick="askQ('How to configure Navigation Menu in Oracle APEX Universal Theme?')">Navigation Menu</button>
+    <button class="q-btn" onclick="askQ('How to implement Row Level Security in Oracle APEX 24.2?')">Row Level Security</button>
   </aside>
 
+  <!-- MAIN -->
   <main class="main">
-    <div class="messages" id="messages"></div>
 
+    <!-- WELCOME -->
+    <div class="welcome" id="welcome">
+      <div class="w-orb">🤖</div>
+      <h1>Oracle <span>APEX</span> Agent</h1>
+      <p class="w-sub">Your senior APEX architect — structured answers, exact navigation paths, complete code, and security guidance. Ask anything.</p>
+
+      <div class="ex-grid">
+        <div class="ex-card" onclick="askQ('How to create an Interactive Report in Oracle APEX 24.2?')">
+          <div class="ex-em">📊</div>
+          <div class="ex-txt">How to create an Interactive Report in APEX 24.2?</div>
+        </div>
+        <div class="ex-card" onclick="askQ('How to use APEX_COLLECTION API with full PL/SQL examples in Oracle APEX?')">
+          <div class="ex-em">🗂️</div>
+          <div class="ex-txt">APEX Collections — full PL/SQL API guide</div>
+        </div>
+        <div class="ex-card" onclick="askQ('How to create a secure REST API using ORDS in Oracle APEX with authentication and rate limiting?')">
+          <div class="ex-em">🔗</div>
+          <div class="ex-txt">Production REST API with ORDS & security</div>
+        </div>
+        <div class="ex-card" onclick="askQ('How to tune and optimize Interactive Report SQL query performance in Oracle APEX?')">
+          <div class="ex-em">⚡</div>
+          <div class="ex-txt">Interactive Report SQL optimisation</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div class="messages hidden" id="messages"></div>
+
+    <!-- INPUT -->
     <div class="input-area">
-      <textarea id="inp" rows="2" placeholder="Ask anything about Oracle APEX..."></textarea>
-      <br><br>
-      <button onclick="send()">Send</button>
+      <div class="inp-wrap">
+        <textarea class="inp" id="inp"
+          placeholder="Ask anything about Oracle APEX 24.2+..."
+          rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="snd-btn" id="sndBtn" onclick="send()" title="Send">➤</button>
+      </div>
+      <div class="inp-footer">
+        <div class="inp-hint">Enter to send · Shift+Enter for new line</div></div>
     </div>
   </main>
-
 </div>
 
 <script>
-let busy = false;
+/* ── STATE ──────────────────────────────────── */
 
-function esc(t){
-  return String(t)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;');
+/* ── STATE ─────────────────────────────────── */
+let busy = false, hist = [];
+
+/* ── UTILS ─────────────────────────────────── */
+function esc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+function handleKey(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); } }
+function scrollBot(){ const m=document.getElementById('messages'); setTimeout(()=>m.scrollTop=m.scrollHeight,80); }
+function showMsgs(){ document.getElementById('welcome').classList.add('hidden'); document.getElementById('messages').classList.remove('hidden'); }
+function setCat(btn,cat){
+  document.querySelectorAll('.s-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(cat!=='all') askQ(`How do I work with ${cat} in Oracle APEX? Provide a complete implementation guide.`);
+}
+function askQ(q){ document.getElementById('inp').value=q; send(); }
+
+/* ── CODE HIGHLIGHT ─────────────────────────── */
+function hlCode(raw){
+  const KW=['BEGIN','END','DECLARE','IF','THEN','ELSE','ELSIF','LOOP','FOR','IN','WHILE','RETURN','NULL','IS','AS','FROM','SELECT','WHERE','INSERT','UPDATE','DELETE','CREATE','OR','REPLACE','PROCEDURE','FUNCTION','PACKAGE','BODY','EXCEPTION','WHEN','OTHERS','RAISE','COMMIT','ROLLBACK','INTO','VALUES','AND','NOT','TRUE','FALSE','TABLE','INDEX','VARCHAR2','NUMBER','DATE','BOOLEAN','TYPE','RECORD','CURSOR','OPEN','FETCH','CLOSE','ROWTYPE','GRANT','EXECUTE','PRAGMA','VIEW','WITH','CASE','THEN','END','OVER','PARTITION'];
+  let h=esc(raw);
+  KW.forEach(k=>{ h=h.replace(new RegExp(`\\b(${k})\\b`,'g'),`<span class="kw">$1</span>`); });
+  h=h.replace(/\b(APEX_[A-Z_]+|apex_[a-z_]+|HTP\.[A-Z_]+|OWA_[A-Z_]+|DBMS_[A-Z_]+|UTL_[A-Z_]+|v\('[\w.]+'\)|:[\w]+)\b/g,`<span class="fn">$1</span>`);
+  h=h.replace(/'([^']*)'/g,`<span class="str">'$1'</span>`);
+  h=h.replace(/(--[^\n]*)/g,`<span class="cm">$1</span>`);
+  h=h.replace(/\b(\d+)\b/g,`<span class="num">$1</span>`);
+  return h;
 }
 
-function askQ(q){
-  document.getElementById('inp').value = q;
-  send();
+/* ── PARSE AI RESPONSE ──────────────────────── */
+function parseAnswer(raw){
+  const lines=raw.split('\n');
+  const out={
+    overview:'',
+    secureText:'', secureCodes:[],
+    apexsteps:[],
+    wherecode:[],
+    notes:[], advanced:[], followup:[],
+    security:[], performance:[], mistakes:[], testing:[], deploy:[],
+    videos:[], docs:[]
+  };
+  let section='', inCode=false, codeLang='PLSQL', codeLines=[];
+
+  function flushCode(){
+    if(codeLines.length) out.secureCodes.push({lang:codeLang, code:codeLines.join('\n')});
+    codeLines=[];
+  }
+
+  for(let i=0;i<lines.length;i++){
+    const raw2=lines[i], line=raw2.trim();
+
+    if(line.startsWith('```')){
+      if(!inCode){ inCode=true; codeLang=(line.replace('```','').trim()||'plsql').toUpperCase(); codeLines=[]; }
+      else{ inCode=false; flushCode(); }
+      continue;
+    }
+    if(inCode){ codeLines.push(raw2); continue; }
+
+    const sl=line.toLowerCase().replace(/[#*_:]/g,'').trim();
+    if(sl==='overview'){section='overview';continue;}
+    if(sl==='secure implementation'){section='secure';continue;}
+    if(sl==='apex configuration steps'){section='apexsteps';continue;}
+    if(sl==='where to place the code'){section='wherecode';continue;}
+    if(sl==='important notes'){section='notes';continue;}
+    if(sl==='optional advanced improvement'){section='advanced';continue;}
+    if(sl==='follow-up questions'||sl==='followup questions'){section='followup';continue;}
+    if(/^youtube|^video/.test(sl)){section='videos';continue;}
+    if(/^doc|^reference|^official/.test(sl)){section='docs';continue;}
+
+    if(section==='overview' && line && !line.startsWith('#'))
+      out.overview += (out.overview?' ':'')+line.replace(/\*\*/g,'');
+
+    if(section==='secure' && line && !line.startsWith('#')){
+      const c=line.replace(/\*\*/g,'').replace(/^[-•]\s*/,'').trim();
+      if(c) out.secureText += (out.secureText?' ':'')+c;
+    }
+
+    if(section==='apexsteps' && line){
+      const c=line.replace(/\*\*/g,'').replace(/^[-•\d.→]\s*/,'').trim();
+      if(c) out.apexsteps.push(c);
+    }
+
+    if(section==='wherecode' && line){
+      const c=line.replace(/\*\*/g,'').replace(/^[-•*]\s*/,'').trim();
+      if(c){
+        const ci=c.indexOf(':');
+        out.wherecode.push(ci>0&&ci<60
+          ? {label:c.slice(0,ci).trim(), detail:c.slice(ci+1).trim()}
+          : {label:c, detail:''});
+      }
+    }
+
+    if(section==='notes'    && line.match(/^[-•*]|^\d+\./)) out.notes.push(line.replace(/^[-•*\d.]\s*/,'').replace(/\*\*/g,''));
+    if(section==='advanced' && line.match(/^[-•*]|^\d+\./)) out.advanced.push(line.replace(/^[-•*\d.]\s*/,'').replace(/\*\*/g,''));
+    if(section==='followup' && line){
+      const fq=line.replace(/^Q:\s*/i,'').replace(/^[-•*\d.]\s*/,'').replace(/\*\*/g,'').trim();
+      if(fq&&fq.length>8) out.followup.push(fq);
+    }
+
+    if(section==='videos'){
+      const urlM=line.match(/https?:\/\/[^\s\])"]+/);
+      const ttl=line.replace(/https?:\/\/[^\s\])"]+/g,'').replace(/[-•*\[\]()]/g,'').replace(/\|/g,'').trim();
+      if(urlM) out.videos.push({title:ttl||'Related Video', url:urlM[0]});
+    }
+    if(section==='docs'){
+      const urlM=line.match(/https?:\/\/[^\s\])"]+/);
+      const rest=line.replace(/https?:\/\/[^\s\])"]+/g,'').replace(/[-•*\[\]()]/g,'').replace(/\|/g,'').trim();
+      if(urlM){
+        let type='article', src='Article';
+        if(/oracle\.com|docs\.oracle/i.test(urlM[0])){type='oracle';src='Oracle Docs';}
+        else if(/apex\.oracle/i.test(urlM[0])){type='oracle';src='APEX Docs';}
+        else if(/github/i.test(urlM[0])){type='blog';src='GitHub';}
+        else if(/medium|hashnode|dev\.to|dzone|talkingapex/i.test(urlM[0])){type='blog';src='Article';}
+        out.docs.push({title:rest||'Reference', url:urlM[0], type, src});
+      }
+    }
+  }
+
+  /* fallback: if nothing parsed, treat whole response as overview */
+  if(!out.overview && !out.secureCodes.length && !out.apexsteps.length){
+    out.overview = raw.replace(/```[\s\S]*?```/g,'').replace(/#+[^\n]*/g,'').trim().slice(0,400);
+  }
+  return out;
 }
 
+/* ── RENDER ANSWER ──────────────────────────── */
+function renderAnswer(raw, container){
+  const d = parseAnswer(raw);
+
+  /* 1 — OVERVIEW */
+  if(d.overview){
+    const el=document.createElement('div'); el.className='ans-section';
+    el.innerHTML=`<div class="sec-hdr">📋 Overview</div><div class="overview-card">${esc(d.overview)}</div>`;
+    container.appendChild(el);
+  }
+
+  /* 2 — SECURE IMPLEMENTATION */
+  if(d.secureText || d.secureCodes.length){
+    const el=document.createElement('div'); el.className='ans-section';
+    let html=`<div class="sec-hdr">🔒 Secure Implementation</div>`;
+    if(d.secureText) html+=`<div class="step-txt" style="margin-bottom:10px;font-size:13.5px;line-height:1.7;color:var(--mid)">${esc(d.secureText)}</div>`;
+    d.secureCodes.forEach(sc=>{
+      html+=`<div class="code-wrap"><div class="code-hd"><span class="code-lang">${esc(sc.lang)}</span><button class="copy-btn" onclick="copyCode(this)">📋 Copy</button></div><pre class="code-pre">${hlCode(sc.code)}</pre></div>`;
+    });
+    el.innerHTML=html;
+    container.appendChild(el);
+  }
+
+  /* 3 — APEX CONFIGURATION STEPS */
+  if(d.apexsteps.length){
+    const el=document.createElement('div'); el.className='ans-section';
+    const rows=d.apexsteps.map((s,i)=>`
+      <div class="uipath-line">
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:#60a5fa;min-width:26px;flex-shrink:0">${String(i+1).padStart(2,'0')}</span>
+        <span class="ui-crumb">${esc(s)}</span>
+      </div>`).join('');
+    el.innerHTML=`<div class="sec-hdr">🧭 APEX Configuration Steps</div><div class="uipath-card">${rows}</div>`;
+    container.appendChild(el);
+  }
+
+  /* 4 — WHERE TO PLACE THE CODE */
+  if(d.wherecode.length){
+    const el=document.createElement('div'); el.className='ans-section';
+    const rows=d.wherecode.map(w=>`
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--blue);background:var(--blue-l);border:1px solid var(--blue-m);padding:2px 9px;border-radius:6px;white-space:nowrap;flex-shrink:0;line-height:1.6">${esc(w.label)}</span>
+        <span style="font-size:12.5px;color:var(--mid);line-height:1.55;padding-top:1px">${esc(w.detail)}</span>
+      </div>`).join('');
+    el.innerHTML=`<div class="sec-hdr">📍 Where to Place the Code</div>
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:2px 14px 4px">${rows}</div>`;
+    container.appendChild(el);
+  }
+
+  /* 5 — IMPORTANT NOTES */
+  if(d.notes.length){
+    const el=document.createElement('div'); el.className='ans-section';
+    el.innerHTML=`<div class="sec-hdr">⚠️ Important Notes</div>
+      <div class="info-block mistakes"><ul>${d.notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
+    container.appendChild(el);
+  }
+
+  /* also render security / performance / deploy if present */
+  [{key:'security',cls:'security',icon:'🔐',lbl:'Security'},
+   {key:'performance',cls:'performance',icon:'⚡',lbl:'Performance Notes'},
+   {key:'testing',cls:'testing',icon:'🧪',lbl:'Testing'},
+   {key:'deploy',cls:'deploy',icon:'🚀',lbl:'Deployment'}
+  ].forEach(b=>{
+    if(!d[b.key]||!d[b.key].length) return;
+    const el=document.createElement('div'); el.className='ans-section';
+    el.innerHTML=`<div class="sec-hdr">${b.icon} ${b.lbl}</div><div class="info-block ${b.cls}"><ul>${d[b.key].map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
+    container.appendChild(el);
+  });
+
+  /* 6 — OPTIONAL ADVANCED IMPROVEMENT */
+  if(d.advanced.length){
+    const el=document.createElement('div'); el.className='ans-section';
+    el.innerHTML=`<div class="sec-hdr">🔧 Optional Advanced Improvement</div>
+      <div class="info-block performance"><ul>${d.advanced.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
+    container.appendChild(el);
+  }
+
+  /* 7 — FOLLOW-UP QUESTIONS */
+  if(d.followup.length){
+    const el=document.createElement('div'); el.className='ans-section';
+    const qs=d.followup.map(q=>`
+      <div class="fup-q" onclick="askQ('${q.replace(/'/g,"\\'")}')"
+           onmouseover="this.querySelector('.fup-arrow').style.color='var(--blue)';this.style.borderColor='var(--blue)';this.style.background='var(--blue-l)'"
+           onmouseout="this.querySelector('.fup-arrow').style.color='var(--dim)';this.style.borderColor='var(--border)';this.style.background='var(--white)'">
+        <span style="font-size:14px;flex-shrink:0">💬</span>
+        <span style="font-size:13px;color:var(--mid);line-height:1.45;flex:1">${esc(q)}</span>
+        <span class="fup-arrow" style="font-size:13px;color:var(--dim);flex-shrink:0;transition:color .15s">→</span>
+      </div>`).join('');
+    el.innerHTML=`<div class="sec-hdr">💬 Follow-up Questions</div><div>${qs}</div>`;
+    container.appendChild(el);
+  }
+
+  /* RESOURCES */
+  if(d.videos.length || d.docs.length){
+    const el=document.createElement('div'); el.className='ans-section';
+    const res=document.createElement('div'); res.className='resources';
+    if(d.videos.length){
+      const lbl=document.createElement('div'); lbl.className='res-lbl'; lbl.textContent='📺 Related Videos';
+      res.appendChild(lbl);
+      d.videos.forEach(v=>{
+        const a=document.createElement('a'); a.className='yt-card'; a.href=v.url; a.target='_blank'; a.rel='noopener noreferrer';
+        a.innerHTML=`<div class="yt-thumb">▶️</div><div class="yt-info"><div class="yt-ch">ORACLE APEX TUTORIALS</div><div class="yt-ttl">${esc(v.title)}</div><div class="yt-meta">youtube.com</div></div><div class="res-arrow">→</div>`;
+        res.appendChild(a);
+      });
+    }
+    if(d.docs.length){
+      const lbl2=document.createElement('div'); lbl2.className='res-lbl'; lbl2.style.marginTop='8px'; lbl2.textContent='📚 Documentation';
+      res.appendChild(lbl2);
+      d.docs.forEach(doc=>{
+        const iconM={'oracle':'📘','blog':'✍️','article':'📄'};
+        const a=document.createElement('a'); a.className='doc-card'; a.href=doc.url; a.target='_blank'; a.rel='noopener noreferrer';
+        a.innerHTML=`<div class="doc-ico ${doc.type}">${iconM[doc.type]||'📄'}</div><div class="doc-info"><div class="doc-src ${doc.type}">${esc(doc.src)}</div><div class="doc-ttl">${esc(doc.title)}</div></div><div class="res-arrow">→</div>`;
+        res.appendChild(a);
+      });
+    }
+    el.appendChild(res); container.appendChild(el);
+  }
+}
+
+/* ── COPY CODE ──────────────────────────────── */
+function copyCode(btn){
+  const pre=btn.closest('.code-wrap').querySelector('.code-pre');
+  navigator.clipboard.writeText(pre.innerText).then(()=>{ btn.textContent='✅ Copied!'; setTimeout(()=>btn.textContent='📋 Copy',2000); });
+}
+
+/* ── SYSTEM PROMPT ──────────────────────────── */
+function buildSystemPrompt(query){
+  return `You are an Oracle APEX expert assistant. The user is an intermediate or experienced Oracle APEX developer. Always use the latest stable Oracle APEX version (currently 24.2).
+
+STRICT RULES:
+- No beginner explanations. No learning modes. No generic advice.
+- No banners or disclaimers like "always test in development".
+- No documentation-style padding or theory lectures.
+- Be direct, dense, and practical.
+- Security MUST be enforced at SQL or DML level — never UI-only or JavaScript-only.
+- Every code block MUST have a matching "Where to Place" entry.
+
+YOU MUST RESPOND WITH EXACTLY THESE 7 SECTIONS IN THIS ORDER:
+
+Overview
+[2–4 sentences. What it does. When to use it. No padding.]
+
+Secure Implementation
+[Complete, working SQL and/or PL/SQL. Inline comments on non-obvious lines.
+Use code blocks with language tag: \`\`\`plsql or \`\`\`sql or \`\`\`javascript
+If security is relevant: one sentence on why UI-only enforcement is insufficient.]
+
+APEX Configuration Steps
+[Numbered. Exact navigation using → arrows. Real APEX 24.2 property names.
+Format: App Builder → Page X → Region Name → Property Panel → Property Name: Value
+Include exact field names and values to set. 4–6 steps.]
+
+Where to Place the Code
+[One bullet per code block. Use these exact labels:
+- Page Process (PL/SQL Process · timing: Before Submit / After Submit)
+- Region Source (SQL Query)
+- Authorization Scheme (PL/SQL Function Body · returns Boolean)
+- Dynamic Action (Event: X · True Action: Execute JavaScript Code / Execute PL/SQL Code)
+- Page → JavaScript → Function and Global Variable Declaration
+- Page → CSS → Inline
+- Application Process (Shared Components → Application Processes → name)
+- Application Item (Shared Components → Application Items → name)
+- Interactive Grid Process (Processing tab → Process type)
+Never omit this section. Every code block above gets one entry here.]
+
+Important Notes
+[3–5 bullets max. Security implications, performance gotchas, session state behavior.
+No generic advice. No "always test in development".]
+
+Optional Advanced Improvement
+[1–3 bullets only. Skip this section entirely if nothing genuinely useful to add.]
+
+Follow-up Questions
+[Exactly 3 questions. Practical. Implementation-focused. Specific to this topic.
+Format each on its own line starting with Q:]
+
+YouTube
+- [Specific video title matching the topic: ${query}] | https://www.youtube.com/@OracleAPEXTutorials
+- [Second relevant title] | https://www.youtube.com/results?search_query=${encodeURIComponent(query.toLowerCase().replace(/\s+/g,'+').slice(0,60))}
+
+Documentation
+- [Most relevant Oracle APEX 24.2 doc page title] | https://docs.oracle.com/en/database/oracle/apex/24.2/htmdb/
+- [Relevant APEX API reference page] | https://docs.oracle.com/en/database/oracle/apex/24.2/aeapi/
+
+HARD RULES — these will never be broken:
+1. All 7 sections must be present. If a section has no content, still include the heading with a dash.
+2. "Where to Place the Code" is NEVER optional.
+3. Follow-up Questions = exactly 3, starting with Q:
+4. Code = triple backtick + language tag always.
+5. APEX navigation paths use → arrows and exact property names.
+6. No filler. No padding. No generic closing statements.`;
+}
+
+/* ── SEND ───────────────────────────────────── */
+/* ── SEND ───────────────────────────────────── */
 async function send(){
   if(busy) return;
 
@@ -73,64 +772,97 @@ async function send(){
 
   busy = true;
   inp.value = '';
+  inp.style.height = 'auto';
+  document.getElementById('sndBtn').disabled = true;
 
+  showMsgs();
   const msgs = document.getElementById('messages');
 
-  /* User bubble */
+  /* user bubble */
   const uDiv = document.createElement('div');
   uDiv.className = 'msg-user';
   uDiv.innerHTML = `<div class="u-bubble">${esc(txt)}</div>`;
   msgs.appendChild(uDiv);
 
-  /* Loading bubble */
-  const loading = document.createElement('div');
-  loading.className = 'msg-ai';
-  loading.innerHTML = `
-    <div class="ai-body">
-      🤖 Generating answer...
+  /* loading */
+  const lDiv = document.createElement('div');
+  lDiv.className = 'msg-ai load-row';
+  lDiv.innerHTML = `
+    <div class="ai-av">🤖</div>
+    <div class="load-dots">
+      <div class="ld"></div>
+      <div class="ld"></div>
+      <div class="ld"></div>
+      <span class="load-txt">Generating answer...</span>
     </div>`;
-  msgs.appendChild(loading);
+  msgs.appendChild(lDiv);
+  scrollBot();
 
   try{
+    /* ✅ FIXED: send only message */
     const res = await fetch('/.netlify/functions/chat', {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ message: txt })
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        message: txt
+      })
     });
 
     const data = await res.json();
-    loading.remove();
 
     if(!res.ok){
       throw new Error(data.error || "API Error");
     }
 
-    const reply = data.reply || "No response received.";
+    /* ✅ FIXED: read reply from backend wrapper */
+    const reply = data.reply || 'Unable to generate a response. Please try again.';
+
+    lDiv.remove();
 
     const aDiv = document.createElement('div');
     aDiv.className = 'msg-ai';
-    aDiv.innerHTML = `
-      <div class="ai-body">
-        ${esc(reply)}
+
+    const aBody = document.createElement('div');
+    aBody.className = 'ai-body';
+    aBody.innerHTML = `
+      <div class="ai-lbl-row">
+        <span class="ai-lbl">APEX AGENT · APEX 24.2+</span>
       </div>`;
+
+    aDiv.innerHTML = `<div class="ai-av">🤖</div>`;
+    aDiv.appendChild(aBody);
     msgs.appendChild(aDiv);
 
+    /* ✅ KEEP YOUR ORIGINAL RENDERER */
+    renderAnswer(reply, aBody);
+
+    scrollBot();
+
   }catch(e){
-    loading.remove();
+    lDiv.remove();
 
     const eDiv = document.createElement('div');
     eDiv.className = 'msg-ai';
     eDiv.innerHTML = `
-      <div class="ai-body" style="color:red;">
-        ⚠️ ${esc(e.message)}
+      <div class="ai-av">🤖</div>
+      <div class="ai-body">
+        <div style="background:var(--red-bg);
+                    border:1px solid var(--red-b);
+                    border-radius:10px;
+                    padding:13px;
+                    font-size:13px;
+                    color:var(--red);">
+          ⚠️ ${esc(e.message)}
+        </div>
       </div>`;
     msgs.appendChild(eDiv);
+    scrollBot();
   }
 
   busy = false;
-  msgs.scrollTop = msgs.scrollHeight;
+  document.getElementById('sndBtn').disabled = false;
+  document.getElementById('inp').focus();
 }
 </script>
-
 </body>
 </html>
